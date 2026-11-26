@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080b12">
+<title>LAST SIGNAL — A Survival Puzzle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700&display=swap');
+:root{--bg:#080b12;--panel:#101722;--line:#263544;--cyan:#6df6e7;--muted:#93a4b6;--red:#ff5368;--gold:#f4c66a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#152231 0,#080b12 62%);color:#e9f2f8;font-family:"IBM Plex Mono",monospace;min-height:100vh;display:grid;place-items:center;padding:18px}
+button{font:inherit;color:inherit;cursor:pointer}button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.shell{width:min(1120px,100%);border:1px solid #2a3b4d;background:#080d15eF;box-shadow:0 24px 90px #0009;position:relative}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.brand{font-family:Orbitron,sans-serif;font-weight:700;letter-spacing:.16em;color:var(--cyan);font-size:14px}.status{color:var(--muted);font-size:11px;letter-spacing:.1em}
+main{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;padding:14px}
+.stage{position:relative;min-width:0;background:#05080d;border:1px solid #263847;overflow:hidden;aspect-ratio:16/10}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#050912d9;padding:22px;text-align:center}
+.overlay.hidden{display:none}.modal{max-width:520px}.eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.22em;margin-bottom:12px}.modal h1{font:700 clamp(26px,4vw,44px) Orbitron,sans-serif;letter-spacing:.08em;margin:0 0 14px}.modal p{color:#b7c6d4;line-height:1.65;font-size:13px}.primary{background:var(--cyan);border:0;color:#061013;font-weight:600;padding:13px 20px;margin-top:12px;letter-spacing:.06em}.primary:hover{background:#a0fff4}.subtle{border:1px solid #435565;background:#111a25;padding:11px 16px;margin:12px 5px 0;color:#c5d3de}.side{display:flex;flex-direction:column;gap:12px}.panel{border:1px solid var(--line);background:#0d141e;padding:14px}.panel h2{font:600 11px Orbitron,sans-serif;letter-spacing:.15em;color:var(--cyan);margin:0 0 12px}.objective{font-size:12px;line-height:1.6;color:#d6e0e9;min-height:48px}.statrow{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:9px 0}.statrow b{color:#f2f7fb;font-weight:500}.meter{height:5px;background:#26323e;margin-top:7px}.meter span{display:block;height:100%;background:var(--cyan);width:100%;transition:width .2s}.meter.danger span{background:var(--red)}.log{font-size:11px;color:#8fa2b5;line-height:1.6;min-height:72px}.log p{margin:0 0 5px}.controls{font-size:11px;color:#a9bac8;line-height:1.9}.key{display:inline-block;border:1px solid #425466;background:#17212c;padding:1px 5px;color:#eef8ff;min-width:22px;text-align:center}.footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:0 14px 14px;color:#6f8498;font-size:10px}.footer button{border:1px solid #2a3a49;background:#101722;padding:7px 10px;color:#9fb0bf;font-size:10px}
+.touch{display:none;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,42px);gap:5px;justify-content:center;margin:0 auto 12px}.touch button{background:#14202b;border:1px solid #314554;color:var(--cyan);font-size:18px}.touch .blank{visibility:hidden}
+@media(max-width:780px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.panel:first-child{grid-column:1/-1}.stage{aspect-ratio:4/3}.touch{display:grid}.controls{display:none}}
+@media(max-width:480px){body{padding:0}.shell{border-left:0;border-right:0}.side{grid-template-columns:1fr}.panel:first-child{grid-column:auto}.topbar{padding:12px}.status{font-size:9px}main{padding:9px}.footer{padding:0 9px 10px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar"><div class="brand">◈ LAST SIGNAL</div><div class="status">STATION 09 // EMERGENCY PROTOCOL</div></header>
+  <main>
+    <section>
+      <div class="stage">
+        <canvas id="game" width="800" height="500" aria-label="Last Signal game area"></canvas>
+        <div class="overlay" id="overlay"><div class="modal">
+          <div class="eyebrow">A SURVIVAL PUZZLE</div>
+          <h1 id="overlayTitle">LAST SIGNAL</h1>
+          <p id="overlayText">The station went silent at 02:17. Find the access card, restore the relay, and reach the exit. Stay out of the Watcher's light.</p>
+          <button class="primary" id="startBtn">BEGIN TRANSMISSION</button>
+          <p style="font-size:10px;color:#71869a">WASD / ARROW KEYS to move · E to interact · ESC to pause</p>
+        </div></div>
+      </div>
+      <div class="touch" aria-label="Touch controls">
+        <button class="blank" tabindex="-1">·</button><button data-key="up">▲</button><button class="blank" tabindex="-1">·</button>
+        <button data-key="left">◀</button><button data-key="down">▼</button><button data-key="right">▶</button>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="panel"><h2>MISSION OBJECTIVE</h2><div class="objective" id="objective">Find the access card.</div>
+        <div class="statrow"><span>ACCESS CARD</span><b id="cardStatus">MISSING</b></div>
+        <div class="statrow"><span>RELAY</span><b id="relayStatus">OFFLINE</b></div>
+        <div class="statrow"><span>THREAT</span><b id="threatStatus">PATROLLING</b></div>
+        <div class="statrow"><span>NOISE</span><b id="noiseLabel">QUIET</b></div><div class="meter" id="noiseMeter"><span></span></div>
+      </div>
+      <div class="panel"><h2>FIELD NOTES</h2><div class="log" id="log"><p>— Signal lost. No contact with command.</p><p>— Find a way out.</p></div></div>
+      <div class="panel controls"><h2>CONTROLS</h2><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> / arrows move<br><span class="key">E</span> interact / use<br><span class="key">ESC</span> pause<br>Stay in the dark. Sprinting makes noise.</div>
+    </aside>
+  </main>
+  <div class="footer"><span>BUILD 0.9.4 // SIGNAL INTEGRITY: UNSTABLE</span><button id="restartBtn">RESTART RUN</button></div>
+</div>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const W=800,H=500,T=40,COLS=20,ROWS=12;
+const overlay=document.getElementById('overlay'),title=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText'),startBtn=document.getElementById('startBtn');
+const objective=document.getElementById('objective'),cardStatus=document.getElementById('cardStatus'),relayStatus=document.getElementById('relayStatus'),threatStatus=document.getElementById('threatStatus'),noiseLabel=document.getElementById('noiseLabel'),noiseMeter=document.querySelector('#noiseMeter span'),logEl=document.getElementById('log');
+const keys=new Set();let state='menu',last=0,noise=0,card=false,relay=false,won=false,gameTime=0,logLines=[],flash=0;
+const map=[
+'####################',
+'#....#.......#.....#',
+'#.##.#.#####.#.##..#',
+'#.#..#.....#...#...#',
+'#.#.####.#.#####.#.#',
+'#...#....#.....#...#',
+'###.#.######.##.####',
+'#...#......#....#..#',
+'#.######.#.####.#..#',
+'#......#.#......#..#',
+'#.##...#....##.....#',
+'####################'
+];
+const player={x:2.5*T,y:1.5*T,r:10,speed:145};
+const watcher={x:16.5*T,y:2.5*T,r:13,speed:70,dir:1,alert:0,route:0};
+const cardPos={x:14.5*T,y:9.5*T},relayPos={x:3.5*T,y:9.5*T},exitPos={x:18.5*T,y:1.5*T};
+function reset(){player.x=2.5*T;player.y=1.5*T;watcher.x=16.5*T;watcher.y=2.5*T;watcher.dir=1;watcher.alert=0;watcher.route=0;noise=0;card=false;relay=false;won=false;gameTime=0;flash=0;logLines=['Signal lost. No contact with command.','Find the access card.'];state='playing';overlay.classList.add('hidden');updateUI();}
+function log(s){logLines.unshift(s);logLines=logLines.slice(0,4);logEl.innerHTML=logLines.map(x=>'<p>— '+x+'</p>').join('');}
+function wallAt(x,y){let c=Math.floor(x/T),r=Math.floor(y/T);return r<0||r>=ROWS||c<0||c>=COLS||map[r][c]==='#';}
+function blocked(x,y,r){return wallAt(x-r,y-r)||wallAt(x+r,y-r)||wallAt(x-r,y+r)||wallAt(x+r,y+r);}
+function move(ent,dx,dy){let nx=ent.x+dx,ny=ent.y+dy;if(!blocked(nx,ent.y,ent.r))ent.x=nx;if(!blocked(ent.x,ny,ent.r))ent.y=ny;}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function center(x,y){return {x:x*T+T/2,y:y*T+T/2};}
+function canSee(){const d=dist(player,watcher);if(d>235)return false;const dx=player.x-watcher.x,dy=player.y-watcher.y;const dot=dx*watcher.dir;return dot> -25 && clearLine(watcher.x,watcher.y,player.x,player.y);}
+function clearLine(x1,y1,x2,y2){const steps=Math.ceil(Math.hypot(x2-x1,y2-y1)/12);for(let i=1;i<steps;i++){let x=x1+(x2-x1)*i/steps,y=y1+(y2-y1)*i/steps;if(wallAt(x,y))return false;}return true;}
+function interact(){if(state!=='playing')return;
+ if(!card&&dist(player,cardPos)<48){card=true;log('Access card recovered. The relay can be restored.');}
+ else if(!relay&&dist(player,relayPos)<54){if(card){relay=true;log('Relay online. Exit door unlocked.');}else log('Relay panel locked. It needs an access card.');}
+ else if(relay&&dist(player,exitPos)<55){win();}
+ else log('Nothing within reach.');updateUI();}
+function win(){state='won';won=true;overlay.classList.remove('hidden');title.textContent='SIGNAL RESTORED';overlayText.textContent='The emergency beacon is online. A rescue signal is leaving Station 09. You made it out.';startBtn.textContent='PLAY AGAIN';log('Rescue signal transmitted.');}
+function caught(){state='caught';overlay.classList.remove('hidden');title.textContent='SIGNAL LOST';overlayText.textContent='The Watcher found you. The station falls silent again. Try another route, and keep your footsteps quiet.';startBtn.textContent='TRY AGAIN';}
+function updateUI(){objective.textContent=card?(relay?'Reach the exit door.':'Restore the relay panel.'):'Find the access card in the east storage room.';cardStatus.textContent=card?'RECOVERED':'MISSING';relayStatus.textContent=relay?'ONLINE':'OFFLINE';threatStatus.textContent=watcher.alert>0.5?'SEARCHING':'PATROLLING';noiseLabel.textContent=noise>55?'LOUD':noise>20?'AUDIBLE':'QUIET';noiseMeter.style.width=Math.min(100,noise)+'%';}
+function update(dt){if(state!=='playing')return;gameTime+=dt;noise=Math.max(0,noise-dt*22);flash=Math.max(0,flash-dt*2);
+ let dx=0,dy=0;const sprint=keys.has('shift');const speed=player.speed*(sprint?1.45:1);
+ if(keys.has('w')||keys.has('arrowup'))dy--;if(keys.has('s')||keys.has('arrowdown'))dy++;if(keys.has('a')||keys.has('arrowleft'))dx--;if(keys.has('d')||keys.has('arrowright'))dx++;
+ if(dx||dy){let l=Math.hypot(dx,dy);dx/=l;dy/=l;move(player,dx*speed*dt,dy*speed*dt);noise=Math.min(100,noise+dt*(sprint?40:9));}
+ if(noise>35&&dist(player,watcher)<280)watcher.alert=Math.min(1,watcher.alert+dt*.6);else watcher.alert=Math.max(0,watcher.alert-dt*.3);
+ // Patrol between two points; alert pulls the Watcher toward recent noise.
+ let target;if(watcher.alert>.25)target=player;else target=watcher.route===0?center(16,2):center(16,9);
+ let vx=target.x-watcher.x,vy=target.y-watcher.y,l=Math.hypot(vx,vy);
+ if(l<10&&!watcher.alert){watcher.route=1-watcher.route;target=watcher.route===0?center(16,2):center(16,9);vx=target.x-watcher.x;vy=target.y-watcher.y;l=Math.hypot(vx,vy);}
+ if(l>1){let sp=watcher.speed*(watcher.alert>.25?1.15:1);watcher.dir=Math.abs(vx)>Math.abs(vy)?Math.sign(vx):watcher.dir;move(watcher,vx/l*sp*dt,vy/l*sp*dt);}
+ if(canSee()){watcher.alert=Math.min(1,watcher.alert+dt*1.4);flash=Math.min(1,flash+dt*2);if(dist(player,watcher)<22)caught();}
+ if(watcher.alert>.8&&dist(player,watcher)<33)caught();
+ if(Math.random()<.003)updateUI();
+}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#070b11';ctx.fillRect(0,0,W,H);
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){let x=c*T,y=r*T;ctx.fillStyle=map[r][c]==='#'?'#182531':'#0c141d';ctx.fillRect(x,y,T,T);if(map[r][c]==='#'){ctx.strokeStyle='#263847';ctx.strokeRect(x+2,y+2,T-4,T-4);}else{ctx.strokeStyle='#111d28';ctx.strokeRect(x,y,T,T);}}
+ // objective markers
+ marker(cardPos,card?'#36534f':'#f4c66a','CARD',!card);marker(relayPos,relay?'#36534f':'#6df6e7','RELAY',!relay);marker(exitPos,relay?'#6df6e7':'#4b5b69','EXIT',true);
+ // vision cone
+ const cone=ctx.createRadialGradient(watcher.x,watcher.y,10,watcher.x,watcher.y,235);cone.addColorStop(0,'#ff53682b');cone.addColorStop(1,'#ff536800');ctx.fillStyle=cone;ctx.fillRect(0,0,W,H);
+ // flashlight beam
+ ctx.save();ctx.translate(watcher.x,watcher.y);ctx.rotate(watcher.dir>0?0:Math.PI);ctx.fillStyle=watcher.alert>.4?'#ff536822':'#f4c66a12';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(240,-100);ctx.lineTo(240,100);ctx.closePath();ctx.fill();ctx.restore();
+ // items
+ if(!card){ctx.fillStyle='#f4c66a';ctx.fillRect(cardPos.x-8,cardPos.y-6,16,12);ctx.fillStyle='#070b11';ctx.fillRect(cardPos.x-4,cardPos.y-2,8,4);}
+ ctx.fillStyle=relay?'#6df6e7':'#25434b';ctx.fillRect(relayPos.x-13,relayPos.y-14,26,28);ctx.fillStyle=relay?'#d8fff9':'#6df6e7';ctx.fillRect(relayPos.x-6,relayPos.y-6,12,12);
+ ctx.fillStyle=relay?'#6df6e7':'#536474';ctx.fillRect(exitPos.x-15,exitPos.y-18,30,36);ctx.fillStyle='#091018';ctx.fillRect(exitPos.x-10,exitPos.y-13,20,26);
+ // watcher
+ ctx.fillStyle=watcher.alert>.35?'#ff5368':'#c7d3dc';ctx.beginPath();ctx.arc(watcher.x,watcher.y,watcher.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#18212a';ctx.fillRect(watcher.x-6,watcher.y-4,12,8);ctx.fillStyle=watcher.alert>.35?'#ffb0ba':'#6df6e7';ctx.fillRect(watcher.x-3,watcher.y-2,6,4);
+ // player
+ ctx.fillStyle='#6df6e7';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#dffffb';ctx.fillRect(player.x-3,player.y-4,6,8);
+ // subtle vignette and HUD labels
+ const vg=ctx.createRadialGradient(W/2,H/2,110,W/2,H/2,480);vg.addColorStop(0,'#00000000');vg.addColorStop(1,'#000a12c9');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+ ctx.font='11px monospace';ctx.fillStyle='#9db1c1';ctx.fillText('STATION 09 / SECTOR '+(card?'B':'A'),14,20);ctx.fillStyle='#6df6e7';ctx.fillText('SIGNAL '+(relay?'STABLE':'WEAK'),W-115,20);
+ if(flash>0){ctx.fillStyle=`rgba(255,60,80,${flash*.12})`;ctx.fillRect(0,0,W,H);}
+}
+function marker(p,color,label,show){ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.stroke();ctx.font='10px monospace';ctx.fillStyle=color;ctx.textAlign='center';ctx.fillText(label,p.x,p.y-25);ctx.textAlign='left';}
+function loop(t){let dt=Math.min(.04,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop);}
+document.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys.add(k);if(k==='e')interact();if(k==='escape'&&state==='playing'){state='paused';overlay.classList.remove('hidden');title.textContent='TRANSMISSION PAUSED';overlayText.textContent='Take a breath. The Watcher will wait here.';startBtn.textContent='RESUME';}else if(k==='escape'&&state==='paused'){state='playing';overlay.classList.add('hidden');}});
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+startBtn.addEventListener('click',()=>{if(state==='paused'){state='playing';overlay.classList.add('hidden');}else reset();});
+document.getElementById('restartBtn').addEventListener('click',reset);
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;const mapKey={up:'w',down:'s',left:'a',right:'d'}[k];b.addEventListener('pointerdown',e=>{e.preventDefault();keys.add(mapKey);});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys.delete(mapKey)));});
+canvas.addEventListener('pointerdown',()=>{if(state==='playing')interact();});
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
